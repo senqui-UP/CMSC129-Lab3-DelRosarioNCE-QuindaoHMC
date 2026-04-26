@@ -6,12 +6,12 @@ import {
   updateStory,
   softDeleteStory,
 } from "../controllers/storyController";
-import { authenticate, optionalAuth } from "../middleware/auth";
+import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
-router.get("/", optionalAuth, listStories);
-router.get("/:id", optionalAuth, getStory);
+router.get("/", listStories);
+router.get("/:id", getStory);
 router.post("/", authenticate, createStory);
 router.put("/:id", authenticate, updateStory);
 router.delete("/:id", authenticate, softDeleteStory);
