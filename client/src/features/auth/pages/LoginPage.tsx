@@ -5,7 +5,6 @@ import { theme } from "../../../styles/theme";
 import {
   inputStyles,
   errorStyles,
-  textStyles,
 } from "../../../styles/commonStyles";
 
 interface LoginFormData {

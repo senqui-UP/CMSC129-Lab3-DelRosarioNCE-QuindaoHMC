@@ -120,12 +120,6 @@ export const Header = () => {
     gap: theme.spacing.lg,
   };
 
-  const mobileHeaderStyles: React.CSSProperties = {
-    ...headerStyles,
-    padding: `${theme.spacing.md} ${theme.layout.mobilePadding}`,
-    gap: theme.spacing.md,
-  };
-
   return (
     <header
       style={{

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, X, Bot, Settings, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Send, X, Bot, Settings, Loader2, AlertCircle } from "lucide-react";
 import { sendChatMessage, confirmAction, type ChatMessage } from "../../api/chatbot";
 import { useAuth } from "../../context/AuthContext";
 import { theme } from "../../styles/theme";
@@ -24,7 +24,7 @@ const styles = {
     width: "60px",
     height: "60px",
     borderRadius: "50%",
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.accent.primary,
     border: "none",
     cursor: "pointer",
     display: "flex",
@@ -70,7 +70,7 @@ const styles = {
     backgroundColor: theme.colors.background,
     borderBottom: `1px solid ${theme.colors.border}`,
   },
-  modeButton: (active: boolean) => ({
+modeButton: (active: boolean) => ({
     flex: 1,
     padding: "8px 12px",
     borderRadius: "8px",
@@ -78,9 +78,9 @@ const styles = {
     cursor: "pointer",
     fontSize: theme.fontSize.sm,
     fontWeight: 500,
+    backgroundColor: active ? theme.colors.accent.primary : theme.colors.surface,
+    color: active ? "#fff" : theme.colors.text.secondary,
     transition: "all 0.2s ease",
-    backgroundColor: active ? theme.colors.primary : theme.colors.surface,
-    color: active ? "#fff" : theme.colors.text.muted,
   }),
   messagesContainer: {
     flex: 1,
@@ -95,12 +95,14 @@ const styles = {
     padding: "12px 16px",
     borderRadius: "16px",
     fontSize: theme.fontSize.md,
-    lineHeight: 1.5,
+    lineHeight: 1.6,
     alignSelf: isUser ? "flex-end" : "flex-start",
-    backgroundColor: isUser ? theme.colors.primary : theme.colors.background,
+    backgroundColor: isUser ? theme.colors.accent.primary : theme.colors.background,
     color: isUser ? "#fff" : theme.colors.text.primary,
     borderBottomRightRadius: isUser ? "4px" : "16px",
     borderBottomLeftRadius: isUser ? "16px" : "4px",
+    whiteSpace: "pre-line" as const,
+    wordBreak: "break-word" as const,
   }),
   inputContainer: {
     padding: "16px",
@@ -123,7 +125,7 @@ const styles = {
     width: "44px",
     height: "44px",
     borderRadius: "50%",
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.accent.primary,
     border: "none",
     cursor: "pointer",
     display: "flex",
@@ -171,7 +173,7 @@ const styles = {
     cursor: "pointer",
     fontWeight: 500,
     fontSize: theme.fontSize.md,
-    backgroundColor: danger ? theme.colors.danger.main : theme.colors.primary,
+    backgroundColor: danger ? theme.colors.danger.primary : theme.colors.accent.primary,
     color: "#fff",
   }),
   loginPrompt: {
@@ -185,7 +187,8 @@ export const Chatbot = () => {
   const { isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<"inquiry" | "crud">("inquiry");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inquiryMessages, setInquiryMessages] = useState<ChatMessage[]>([]);
+  const [crudMessages, setCrudMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
@@ -197,24 +200,32 @@ export const Chatbot = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const currentMessages = mode === "inquiry" ? inquiryMessages : crudMessages;
+  const setCurrentMessages = mode === "inquiry" ? setInquiryMessages : setCrudMessages;
 
   useEffect(() => {
-    if (isOpen && isAuthenticated && messages.length === 0) {
-      setMessages([
-        {
-          id: "welcome",
-          role: "assistant",
-          content: mode === "crud"
-            ? "Hello! I'm your AI assistant for story management. I can help you search for stories, create new ones, or manage your existing works. Try asking things like 'show me my stories' or 'create a new fantasy story'. What would you like to do?"
-            : "Hello! I'm your AI assistant for finding stories. I can help you search for stories by genre, author, tags, or keywords. Try asking things like 'show me adventure stories' or 'find fantasy stories with magic tag'. What are you looking for?",
-          timestamp: Date.now(),
-        },
-      ]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [currentMessages]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    if (!isAuthenticated) return;
+    
+    const existingMessages = mode === "inquiry" ? inquiryMessages : crudMessages;
+    
+    if (existingMessages.length === 0) {
+      const welcomeMsg: ChatMessage = {
+        id: "welcome",
+        role: "assistant",
+        content: mode === "crud"
+          ? "Hello! I'm your AI assistant for story management.\n\n📖 I can help you search for stories\n✏️ Create new story templates\n📝 Update your existing stories\n🗑️ Delete your stories\n\nWhat would you like to do?"
+          : "Hello! I'm your AI assistant for finding stories.\n\n🔍 I can help you:\n• Search stories by title, author, genre, or tags\n• Discover new stories\n• Get recommendations\n\nWhat are you looking for?",
+        timestamp: Date.now(),
+      };
+      setCurrentMessages([welcomeMsg]);
     }
-  }, [isOpen, isAuthenticated, messages.length, mode]);
+  }, [isOpen, isAuthenticated]);
 
   const handleSend = async () => {
     if (!input.trim() || loading || !isAuthenticated) return;
@@ -226,12 +237,12 @@ export const Chatbot = () => {
       timestamp: Date.now(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setCurrentMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
     try {
-      const contextMessages = messages.slice(-10);
+      const contextMessages = currentMessages.slice(-10);
       const response = await sendChatMessage(input.trim(), mode, contextMessages);
 
       const assistantMessage: ChatMessage = {
@@ -241,7 +252,7 @@ export const Chatbot = () => {
         timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setCurrentMessages((prev) => [...prev, assistantMessage]);
 
       if (mode === "crud" && response.functionCalls) {
         for (const fc of response.functionCalls) {
@@ -266,7 +277,7 @@ export const Chatbot = () => {
         content: error instanceof Error ? error.message : "Sorry, I encountered an error. Please try again.",
         timestamp: Date.now(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setCurrentMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
@@ -295,7 +306,7 @@ export const Chatbot = () => {
           : `Operation failed: ${result.message}`,
         timestamp: Date.now(),
       };
-      setMessages((prev) => [...prev, resultMessage]);
+      setCurrentMessages((prev) => [...prev, resultMessage]);
     } catch (error: unknown) {
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
@@ -303,7 +314,7 @@ export const Chatbot = () => {
         content: "Sorry, I encountered an error while processing your request.",
         timestamp: Date.now(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setCurrentMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
       setConfirmDialog({ open: false, action: null, storyId: null, storyTitle: "" });
@@ -318,17 +329,33 @@ export const Chatbot = () => {
   };
 
   const switchMode = (newMode: "inquiry" | "crud") => {
-    setMode(newMode);
-    setMessages([
-      {
+    if (newMode === mode) return;
+
+    const otherModeMessages = newMode === "inquiry" ? crudMessages : inquiryMessages;
+    const currentModeMessages = newMode === "inquiry" ? inquiryMessages : crudMessages;
+    const setCurrentModeMessages = newMode === "inquiry" ? setInquiryMessages : setCrudMessages;
+
+    if (currentModeMessages.length === 0) {
+      const welcomeMsg: ChatMessage = {
         id: "welcome",
         role: "assistant",
         content: newMode === "crud"
-          ? "Switched to CRUD Mode. I can now help you create, update, and delete stories in addition to searching. What would you like to do?"
-          : "Switched to Inquiry Mode. I can help you search and discover stories. What are you looking for?",
+          ? "🔧 **CRUD Mode**\n\nI can help you:\n📖 Search stories\n✏️ Create new stories\n📝 Update your stories\n🗑️ Delete your stories\n\nWhat would you like to do?"
+          : "🔍 **Inquiry Mode**\n\nI can help you:\n• Search stories by genre, author, tags\n• Discover new stories\n• Get recommendations\n\nWhat are you looking for?",
         timestamp: Date.now(),
-      },
-    ]);
+      };
+      setCurrentModeMessages([welcomeMsg]);
+    } else if (otherModeMessages.length > 0) {
+      const switchMsg: ChatMessage = {
+        id: `switch-${Date.now()}`,
+        role: "assistant",
+        content: `↩️ Switched from ${newMode === "inquiry" ? "CRUD" : "inquiry"} mode. Your previous conversation (${otherModeMessages.length} messages) is saved.`,
+        timestamp: Date.now(),
+      };
+      setCurrentModeMessages(prev => [...prev, switchMsg]);
+    }
+
+    setMode(newMode);
   };
 
   if (!isAuthenticated) {
@@ -370,7 +397,7 @@ export const Chatbot = () => {
           </div>
 
           <div style={styles.messagesContainer}>
-            {messages.map((msg) => (
+            {currentMessages.map((msg) => (
               <div
                 key={msg.id}
                 style={styles.message(msg.role === "user")}
@@ -414,7 +441,7 @@ export const Chatbot = () => {
           {confirmDialog.open && (
             <div style={styles.confirmDialog}>
               <div style={styles.confirmContent}>
-                <AlertCircle size={48} color={theme.colors.danger.main} />
+                <AlertCircle size={48} color={theme.colors.danger.primary} />
                 <h3 style={{ marginTop: "16px", color: theme.colors.text.primary }}>
                   Confirm {confirmDialog.action === "delete" ? "Delete" : "Update"}
                 </h3>
