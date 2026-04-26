@@ -8,6 +8,7 @@ import storiesRouter from "./routes/stories";
 import librariesRouter from "./routes/libraries";
 import authRouter from "./routes/auth";
 import aiChatRouter from "./routes/aiChat";
+import aiDataRouter from "./routes/aiData";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/stories", storiesRouter);
 app.use("/api/v1/libraries", librariesRouter);
 app.use("/api/v1/ai", aiChatRouter);
+app.use("/api/v1/ai-data", aiDataRouter);
 
 app.use(errorHandler);
 
