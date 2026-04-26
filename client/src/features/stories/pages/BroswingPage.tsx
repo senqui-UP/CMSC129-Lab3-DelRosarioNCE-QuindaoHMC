@@ -772,17 +772,21 @@ export const BroswingPage = () => {
                       setCurrentPage(page);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
-                    shape="rounded"
-                  />
-                  <Pagination
-                    count={totalPages}
-                    page={currentPage}
-                    onChange={(_e, page) => {
-                      setCurrentPage(page);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
                     variant="outlined"
                     shape="rounded"
+                    sx={{
+                      "& .MuiPaginationItem-root": {
+                        color: "#ffffff",
+                        borderColor: "#444444",
+                        "&:hover": {
+                          backgroundColor: "#333333",
+                        },
+                      },
+                      "& .Mui-selected": {
+                        backgroundColor: "#60a5fa !important",
+                        color: "#ffffff !important",
+                      },
+                    }}
                   />
                 </div>
               </section>

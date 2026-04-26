@@ -330,31 +330,6 @@ export const Chatbot = () => {
 
   const switchMode = (newMode: "inquiry" | "crud") => {
     if (newMode === mode) return;
-
-    const otherModeMessages = newMode === "inquiry" ? crudMessages : inquiryMessages;
-    const currentModeMessages = newMode === "inquiry" ? inquiryMessages : crudMessages;
-    const setCurrentModeMessages = newMode === "inquiry" ? setInquiryMessages : setCrudMessages;
-
-    if (currentModeMessages.length === 0) {
-      const welcomeMsg: ChatMessage = {
-        id: "welcome",
-        role: "assistant",
-        content: newMode === "crud"
-          ? "🔧 **CRUD Mode**\n\nI can help you:\n📖 Search stories\n✏️ Create new stories\n📝 Update your stories\n🗑️ Delete your stories\n\nWhat would you like to do?"
-          : "🔍 **Inquiry Mode**\n\nI can help you:\n• Search stories by genre, author, tags\n• Discover new stories\n• Get recommendations\n\nWhat are you looking for?",
-        timestamp: Date.now(),
-      };
-      setCurrentModeMessages([welcomeMsg]);
-    } else if (otherModeMessages.length > 0) {
-      const switchMsg: ChatMessage = {
-        id: `switch-${Date.now()}`,
-        role: "assistant",
-        content: `↩️ Switched from ${newMode === "inquiry" ? "CRUD" : "inquiry"} mode. Your previous conversation (${otherModeMessages.length} messages) is saved.`,
-        timestamp: Date.now(),
-      };
-      setCurrentModeMessages(prev => [...prev, switchMsg]);
-    }
-
     setMode(newMode);
   };
 

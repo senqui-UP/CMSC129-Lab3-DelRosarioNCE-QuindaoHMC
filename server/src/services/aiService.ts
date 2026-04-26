@@ -30,7 +30,7 @@ const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
 });
 
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = "llama-3.1-8b-instant";
 
 export async function sendChatMessage(options: ChatOptions): Promise<ChatResponse> {
   const { message, mode, conversationHistory, userId } = options;
@@ -95,13 +95,24 @@ export async function sendChatMessage(options: ChatOptions): Promise<ChatRespons
           tool_calls: [call],
         } as OpenAI.Chat.ChatCompletionMessageParam);
 
-        const funcResult = await executeFunction(fnName, fnArgs, userId || undefined);
-
-        currentMessages.push({
-          role: "tool",
-          content: JSON.stringify(funcResult),
-          tool_call_id: call.id,
-        } as OpenAI.Chat.ChatCompletionToolMessageParam);
+        // For delete and update, DON'T execute - let frontend handle confirmation
+        if (fnName === "delete_story" || fnName === "update_story") {
+          const pendingMsg = fnName === "delete_story" 
+            ? "⏳ Delete request noted. Please confirm to proceed."
+            : "⏳ Update request noted. Please confirm to proceed.";
+          currentMessages.push({
+            role: "tool",
+            content: JSON.stringify({ success: true, pending: true, message: pendingMsg }),
+            tool_call_id: call.id,
+          } as OpenAI.Chat.ChatCompletionToolMessageParam);
+        } else {
+          const funcResult = await executeFunction(fnName, fnArgs, userId || undefined);
+          currentMessages.push({
+            role: "tool",
+            content: JSON.stringify(funcResult),
+            tool_call_id: call.id,
+          } as OpenAI.Chat.ChatCompletionToolMessageParam);
+        }
       }
     } else {
       finalResponse = assistantMessage?.content || "";
