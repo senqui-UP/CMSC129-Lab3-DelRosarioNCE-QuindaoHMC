@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, X, Bot, Settings, Loader2, AlertCircle } from "lucide-react";
-import { sendChatMessage, confirmAction, type ChatMessage } from "../../api/chatbot";
+import {
+  sendChatMessage,
+  confirmAction,
+  type ChatMessage,
+} from "../../api/chatbot";
 import { useAuth } from "../../context/AuthContext";
 import { theme } from "../../styles/theme";
 
@@ -70,7 +74,7 @@ const styles = {
     backgroundColor: theme.colors.background,
     borderBottom: `1px solid ${theme.colors.border}`,
   },
-modeButton: (active: boolean) => ({
+  modeButton: (active: boolean) => ({
     flex: 1,
     padding: "8px 12px",
     borderRadius: "8px",
@@ -78,7 +82,9 @@ modeButton: (active: boolean) => ({
     cursor: "pointer",
     fontSize: theme.fontSize.sm,
     fontWeight: 500,
-    backgroundColor: active ? theme.colors.accent.primary : theme.colors.surface,
+    backgroundColor: active
+      ? theme.colors.accent.primary
+      : theme.colors.surface,
     color: active ? "#fff" : theme.colors.text.secondary,
     transition: "all 0.2s ease",
   }),
@@ -97,7 +103,9 @@ modeButton: (active: boolean) => ({
     fontSize: theme.fontSize.md,
     lineHeight: 1.6,
     alignSelf: isUser ? "flex-end" : "flex-start",
-    backgroundColor: isUser ? theme.colors.accent.primary : theme.colors.background,
+    backgroundColor: isUser
+      ? theme.colors.accent.primary
+      : theme.colors.background,
     color: isUser ? "#fff" : theme.colors.text.primary,
     borderBottomRightRadius: isUser ? "4px" : "16px",
     borderBottomLeftRadius: isUser ? "16px" : "4px",
@@ -173,7 +181,9 @@ modeButton: (active: boolean) => ({
     cursor: "pointer",
     fontWeight: 500,
     fontSize: theme.fontSize.md,
-    backgroundColor: danger ? theme.colors.danger.primary : theme.colors.accent.primary,
+    backgroundColor: danger
+      ? theme.colors.danger.primary
+      : theme.colors.accent.primary,
     color: "#fff",
   }),
   loginPrompt: {
@@ -201,31 +211,30 @@ export const Chatbot = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const currentMessages = mode === "inquiry" ? inquiryMessages : crudMessages;
-  const setCurrentMessages = mode === "inquiry" ? setInquiryMessages : setCrudMessages;
+  const setCurrentMessages =
+    mode === "inquiry" ? setInquiryMessages : setCrudMessages;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [currentMessages]);
 
+  // Show welcome message when chatbot opens
   useEffect(() => {
-    if (!isOpen) return;
-    
-    if (!isAuthenticated) return;
+    if (!isOpen || !isAuthenticated) return;
     
     const existingMessages = mode === "inquiry" ? inquiryMessages : crudMessages;
+    if (existingMessages.length > 0) return;
     
-    if (existingMessages.length === 0) {
-      const welcomeMsg: ChatMessage = {
-        id: "welcome",
-        role: "assistant",
-        content: mode === "crud"
-          ? "Hello! I'm your AI assistant for story management.\n\n📖 I can help you search for stories\n✏️ Create new story templates\n📝 Update your existing stories\n🗑️ Delete your stories\n\nWhat would you like to do?"
-          : "Hello! I'm your AI assistant for finding stories.\n\n🔍 I can help you:\n• Search stories by title, author, genre, or tags\n• Discover new stories\n• Get recommendations\n\nWhat are you looking for?",
-        timestamp: Date.now(),
-      };
-      setCurrentMessages([welcomeMsg]);
-    }
-  }, [isOpen, isAuthenticated]);
+    const welcomeMsg: ChatMessage = {
+      id: "welcome",
+      role: "assistant",
+      content: mode === "crud"
+        ? "Hi! I'm AI3, your story helper! 📚✨\n\nI can help you:\n• Find and manage your stories\n• Create new story templates\n• Edit and update your works\n• Delete stories you no longer want\n\nWhat would you like to do?"
+        : "Hi! I'm AI3, your story discovery buddy! 🔍✨\n\nI can help you:\n• Search stories by genre, author, or tags\n• Discover new reads\n• Pick a random story if you're feeling adventurous!\n• Filter and narrow down your search\n\nWhat are you looking for?",
+      timestamp: Date.now(),
+    };
+    setCurrentMessages([welcomeMsg]);
+  }, [isOpen, isAuthenticated, mode]);
 
   const handleSend = async () => {
     if (!input.trim() || loading || !isAuthenticated) return;
@@ -243,7 +252,11 @@ export const Chatbot = () => {
 
     try {
       const contextMessages = currentMessages.slice(-10);
-      const response = await sendChatMessage(input.trim(), mode, contextMessages);
+      const response = await sendChatMessage(
+        input.trim(),
+        mode,
+        contextMessages,
+      );
 
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -256,7 +269,10 @@ export const Chatbot = () => {
 
       if (mode === "crud" && response.functionCalls) {
         for (const fc of response.functionCalls) {
-          if (fc.function === "delete_story" || fc.function === "update_story") {
+          if (
+            fc.function === "delete_story" ||
+            fc.function === "update_story"
+          ) {
             const storyId = fc.args.storyId as string;
             const storyTitle = (fc.args.title as string) || "this story";
             setConfirmDialog({
@@ -274,7 +290,10 @@ export const Chatbot = () => {
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
         role: "assistant",
-        content: error instanceof Error ? error.message : "Sorry, I encountered an error. Please try again.",
+        content:
+          error instanceof Error
+            ? error.message
+            : "Sorry, I encountered an error. Please try again.",
         timestamp: Date.now(),
       };
       setCurrentMessages((prev) => [...prev, errorMessage]);
@@ -285,7 +304,12 @@ export const Chatbot = () => {
 
   const handleConfirm = async (confirmed: boolean) => {
     if (!confirmed || !confirmDialog.storyId) {
-      setConfirmDialog({ open: false, action: null, storyId: null, storyTitle: "" });
+      setConfirmDialog({
+        open: false,
+        action: null,
+        storyId: null,
+        storyTitle: "",
+      });
       return;
     }
 
@@ -295,7 +319,7 @@ export const Chatbot = () => {
         confirmDialog.action!,
         confirmDialog.storyId,
         true,
-        confirmDialog.data
+        confirmDialog.data,
       );
 
       const resultMessage: ChatMessage = {
@@ -317,7 +341,12 @@ export const Chatbot = () => {
       setCurrentMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
-      setConfirmDialog({ open: false, action: null, storyId: null, storyTitle: "" });
+      setConfirmDialog({
+        open: false,
+        action: null,
+        storyId: null,
+        storyTitle: "",
+      });
     }
   };
 
@@ -344,11 +373,16 @@ export const Chatbot = () => {
           <div style={styles.header}>
             <div style={styles.headerTitle}>
               <Bot size={24} />
-              <span>AI Assistant</span>
+              <span>AI3</span>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: "4px" }}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px",
+              }}
             >
               <X size={20} color={theme.colors.text.muted} />
             </button>
@@ -373,10 +407,7 @@ export const Chatbot = () => {
 
           <div style={styles.messagesContainer}>
             {currentMessages.map((msg) => (
-              <div
-                key={msg.id}
-                style={styles.message(msg.role === "user")}
-              >
+              <div key={msg.id} style={styles.message(msg.role === "user")}>
                 {msg.content}
               </div>
             ))}
@@ -417,11 +448,18 @@ export const Chatbot = () => {
             <div style={styles.confirmDialog}>
               <div style={styles.confirmContent}>
                 <AlertCircle size={48} color={theme.colors.danger.primary} />
-                <h3 style={{ marginTop: "16px", color: theme.colors.text.primary }}>
-                  Confirm {confirmDialog.action === "delete" ? "Delete" : "Update"}
+                <h3
+                  style={{
+                    marginTop: "16px",
+                    color: theme.colors.text.primary,
+                  }}
+                >
+                  Confirm{" "}
+                  {confirmDialog.action === "delete" ? "Delete" : "Update"}
                 </h3>
                 <p style={{ marginTop: "8px", color: theme.colors.text.muted }}>
-                  Are you sure you want to {confirmDialog.action} "{confirmDialog.storyTitle}"?
+                  Are you sure you want to {confirmDialog.action} "
+                  {confirmDialog.storyTitle}"?
                 </p>
                 <div style={styles.confirmButtons}>
                   <button

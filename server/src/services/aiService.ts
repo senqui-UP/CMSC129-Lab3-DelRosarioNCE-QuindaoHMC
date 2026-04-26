@@ -32,7 +32,9 @@ const groq = new OpenAI({
 
 const MODEL = "llama-3.1-8b-instant";
 
-export async function sendChatMessage(options: ChatOptions): Promise<ChatResponse> {
+export async function sendChatMessage(
+  options: ChatOptions,
+): Promise<ChatResponse> {
   const { message, mode, conversationHistory, userId } = options;
 
   const systemPrompt = getFlexiblePrompt(message, mode);
@@ -85,9 +87,9 @@ export async function sendChatMessage(options: ChatOptions): Promise<ChatRespons
       for (const call of toolCallsResult) {
         const fnName = (call as any).function?.name || (call as any).name;
         const fnArgs = JSON.parse(
-          (call as any).function?.arguments || (call as any).arguments || "{}"
+          (call as any).function?.arguments || (call as any).arguments || "{}",
         ) as Record<string, unknown>;
-        
+
         toolCalls.push({ name: fnName, args: fnArgs });
 
         currentMessages.push({
@@ -97,16 +99,25 @@ export async function sendChatMessage(options: ChatOptions): Promise<ChatRespons
 
         // For delete and update, DON'T execute - let frontend handle confirmation
         if (fnName === "delete_story" || fnName === "update_story") {
-          const pendingMsg = fnName === "delete_story" 
-            ? "⏳ Delete request noted. Please confirm to proceed."
-            : "⏳ Update request noted. Please confirm to proceed.";
+          const pendingMsg =
+            fnName === "delete_story"
+              ? "⏳ Delete request noted. Please confirm to proceed."
+              : "⏳ Update request noted. Please confirm to proceed.";
           currentMessages.push({
             role: "tool",
-            content: JSON.stringify({ success: true, pending: true, message: pendingMsg }),
+            content: JSON.stringify({
+              success: true,
+              pending: true,
+              message: pendingMsg,
+            }),
             tool_call_id: call.id,
           } as OpenAI.Chat.ChatCompletionToolMessageParam);
         } else {
-          const funcResult = await executeFunction(fnName, fnArgs, userId || undefined);
+          const funcResult = await executeFunction(
+            fnName,
+            fnArgs,
+            userId || undefined,
+          );
           currentMessages.push({
             role: "tool",
             content: JSON.stringify(funcResult),
@@ -142,9 +153,41 @@ export async function sendChatMessage(options: ChatOptions): Promise<ChatRespons
   };
 }
 
-export function createErrorResponse(error: string) {
+const errorResponses = [
+  "Oh no! Something went a bit wobbly there. 🤔",
+  "Whoopsie! I tripped on that one!",
+  "Hmm, my brain just did a little hiccup 😅",
+  "Oopsie! That's a bit beyond my magical abilities right now.",
+  "Eek! Something got tangled up in the wires!",
+];
+
+function getWhimsicalErrorMessage(): string {
+  return errorResponses[Math.floor(Math.random() * errorResponses.length)];
+}
+
+export function createErrorResponse(errorType: string): {
+  response: string;
+  functionCalls: any[];
+  mode: string;
+} {
+  const baseMessage = getWhimsicalErrorMessage();
+
+  const suggestions: Record<string, string> = {
+    rate_limit:
+      "\n\n💡 Would you like to try again in a moment? Or maybe search for something else in the meantime?",
+    model_not_found:
+      "\n\n💡 Would you like me to try a different approach? Maybe search for stories instead?",
+    not_found:
+      "\n\n💡 Would you like to search for something else? I can help you find stories by genre, author, or tags!",
+    auth: "\n\n💡 You might need to log in again. Would you like me to help you with that?",
+    default:
+      "\n\n💡 Would you like to try something else? I can help you find stories, create new ones, or answer questions!",
+  };
+
+  const suggestion = suggestions[errorType] || suggestions.default;
+
   return {
-    response: error,
+    response: `${baseMessage}${suggestion}`,
     functionCalls: [],
     mode: "inquiry",
   };

@@ -18,6 +18,10 @@ export async function executeFunction(
   switch (functionName) {
     case "search_stories":
       return await searchStories(args);
+    case "get_all_genres":
+      return await getAllGenres();
+    case "get_all_tags":
+      return await getAllTags();
     case "get_story_details":
       return await getStoryDetails(args);
     case "create_story":
@@ -76,6 +80,36 @@ async function searchStories(args: Record<string, unknown>): Promise<FunctionRes
     data: stories, 
     count: stories.length,
     message: `Found ${stories.length} story(ies)`
+  };
+}
+
+async function getAllGenres(): Promise<FunctionResult> {
+  const stories = await Story.find({ deletedAt: null }).select("genres").lean();
+  const genreSet = new Set<string>();
+  stories.forEach(story => {
+    story.genres?.forEach((genre: string) => genreSet.add(genre));
+  });
+  const genres = Array.from(genreSet).sort();
+  return { 
+    success: true, 
+    data: genres, 
+    count: genres.length,
+    message: `There are ${genres.length} unique genres in the database. Would you like me to show you all of them?`
+  };
+}
+
+async function getAllTags(): Promise<FunctionResult> {
+  const stories = await Story.find({ deletedAt: null }).select("tags").lean();
+  const tagSet = new Set<string>();
+  stories.forEach(story => {
+    story.tags?.forEach((tag: string) => tagSet.add(tag));
+  });
+  const tags = Array.from(tagSet).sort();
+  return { 
+    success: true, 
+    data: tags, 
+    count: tags.length,
+    message: `There are ${tags.length} unique tags in the database. Would you like me to show you all of them?`
   };
 }
 
