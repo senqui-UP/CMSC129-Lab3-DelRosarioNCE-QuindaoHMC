@@ -1,7 +1,7 @@
 <h1 align="center">AO3 Dupe</h1>
 
   <p align="center">
-    A hybrid of manga and light novel websites, Wattpad, and Archive of Our Own for oneshot stories
+    A hybrid of manga and light novel websites, Wattpad, and Archive of Our Own for oneshot stories. Fork of Laboratory 1 for AI Assistant and Chatbot feature.
   </p>
 
 ---
@@ -26,12 +26,22 @@
    tsc --version     # for verification
    ```
 
+#### For Chatbot
+
+1. Get a Groq API key from [Google AI Studio](https://console.groq.com/keys)
+2. Copy `.env.example` to `.env` in the server directory
+3. Add your API key to the `.env` file:
+   ```
+   GROQ_API_KEY=your_gemini_api_key_here
+   ```
+
 --- 
+
 ## ➡️ How to Run
 
-1. Run terminal from backend using `cd server`
+1. `cd server`
 2. `npm run dev` (makes server run at localhost:5000)
-3. Run split terminal from frontend using `cd client`
+3. `cd client`
 4. `npm run dev` (makes client side run at localhost:5173)
 5. Open and run http://localhost:5173/
 
@@ -86,22 +96,16 @@ All AI routes require authentication (JWT token).
 
 ## 🤖 AI Chatbot Features
 
-This application includes an AI-powered chatbot powered by **Google Gemini API** to help users manage and discover stories.
-
-### Setup
-
-1. Get a Groq API key from [Google AI Studio](https://console.groq.com/keys)
-2. Copy `.env.example` to `.env` in the server directory
-3. Add your API key to the `.env` file:
-   ```
-   GROQ_API_KEY=your_gemini_api_key_here
-   ```
+This application includes an AI-powered chatbot powered by **Groq AI** to help users manage and discover stories.
+![AI3](client/src/assets/AI3.png "AI3")
 
 ### Features
 
+![BotBoy](client/src/assets/BotBoy.png "AI Chat Bot Icon")
 The chatbot appears as a floating widget on the main page. It has two modes:
 
 #### 1. Inquiry Mode
+![AI3Inquiry](client/src/assets/AI3Inquiry.png "Inquiry Mode")
 - Search for stories by title, author, genre, or tags
 - Ask natural language queries like "show me adventure stories"
 - Get conversational responses with story recommendations
@@ -133,7 +137,6 @@ In addition to all inquiry features:
 - "Create a story called 'My Adventure' with fantasy and adventure genres"
 - "Update my story 'Old Draft' to add horror genre"
 - "Delete my story 'First Attempt'"
-- "Show me my stories"
 - "Edit a story titled [title]"
 - "Move all [genre] stories into my library"
 
