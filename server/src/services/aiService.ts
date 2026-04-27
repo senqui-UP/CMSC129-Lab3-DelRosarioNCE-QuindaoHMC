@@ -64,6 +64,8 @@ export async function sendChatMessage(
   messages.push({ role: "user", content: message });
 
   const availableTools = mode === "crud" ? tools : tools.slice(0, 2);
+  
+  console.log("[AI Service] Mode:", mode, "Tools available:", availableTools.map(t => t.function.name).join(", "));
 
   let toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
   let maxIterations = 5;
@@ -82,6 +84,9 @@ export async function sendChatMessage(
 
     const assistantMessage = response.choices[0]?.message;
     const toolCallsResult = assistantMessage?.tool_calls || [];
+    
+    console.log("[AI Service] Response:", assistantMessage?.content?.substring(0, 200));
+    console.log("[AI Service] iteration:", iterations, "tool calls:", toolCallsResult.length);
 
     if (toolCallsResult.length > 0) {
       for (const call of toolCallsResult) {
@@ -97,33 +102,20 @@ export async function sendChatMessage(
           tool_calls: [call],
         } as OpenAI.Chat.ChatCompletionMessageParam);
 
-        // For delete and update, DON'T execute - let frontend handle confirmation
-        if (fnName === "delete_story" || fnName === "update_story") {
-          const pendingMsg =
-            fnName === "delete_story"
-              ? "⏳ Delete request noted. Please confirm to proceed."
-              : "⏳ Update request noted. Please confirm to proceed.";
-          currentMessages.push({
-            role: "tool",
-            content: JSON.stringify({
-              success: true,
-              pending: true,
-              message: pendingMsg,
-            }),
-            tool_call_id: call.id,
-          } as OpenAI.Chat.ChatCompletionToolMessageParam);
-        } else {
-          const funcResult = await executeFunction(
-            fnName,
-            fnArgs,
-            userId || undefined,
-          );
-          currentMessages.push({
-            role: "tool",
-            content: JSON.stringify(funcResult),
-            tool_call_id: call.id,
-          } as OpenAI.Chat.ChatCompletionToolMessageParam);
-        }
+        console.log("[AI Service] Calling function:", fnName, "with args:", fnArgs);
+        
+        // Execute all functions immediately
+        const funcResult = await executeFunction(
+          fnName,
+          fnArgs,
+          userId || undefined,
+        );
+        console.log("[AI Service] Function result:", funcResult);
+        currentMessages.push({
+          role: "tool",
+          content: JSON.stringify(funcResult),
+          tool_call_id: call.id,
+        } as OpenAI.Chat.ChatCompletionToolMessageParam);
       }
     } else {
       finalResponse = assistantMessage?.content || "";

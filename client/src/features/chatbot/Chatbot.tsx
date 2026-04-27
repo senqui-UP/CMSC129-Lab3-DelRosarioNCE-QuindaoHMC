@@ -1,20 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, X, Bot, Settings, Loader2, AlertCircle } from "lucide-react";
+import { Send, X, Bot, Settings, Loader2 } from "lucide-react";
 import {
   sendChatMessage,
-  confirmAction,
   type ChatMessage,
 } from "../../api/chatbot";
 import { useAuth } from "../../context/AuthContext";
 import { theme } from "../../styles/theme";
-
-interface ConfirmDialogState {
-  open: boolean;
-  action: "delete" | "update" | null;
-  storyId: string | null;
-  storyTitle: string;
-  data?: Record<string, unknown>;
-}
+import { invalidateStoriesCache } from "../../hooks/useStories";
 
 const styles = {
   container: {
@@ -149,49 +141,7 @@ const styles = {
     fontSize: theme.fontSize.sm,
     padding: "8px 16px",
   },
-  confirmDialog: {
-    position: "absolute" as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "24px",
-  },
-  confirmContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: "16px",
-    padding: "24px",
-    maxWidth: "320px",
-    textAlign: "center" as const,
-  },
-  confirmButtons: {
-    display: "flex",
-    gap: "12px",
-    marginTop: "20px",
-    justifyContent: "center",
-  },
-  confirmButton: (danger: boolean) => ({
-    padding: "10px 24px",
-    borderRadius: "8px",
-    border: "none",
-    cursor: "pointer",
-    fontWeight: 500,
-    fontSize: theme.fontSize.md,
-    backgroundColor: danger
-      ? theme.colors.danger.primary
-      : theme.colors.accent.primary,
-    color: "#fff",
-  }),
-  loginPrompt: {
-    padding: "24px",
-    textAlign: "center" as const,
-    color: theme.colors.text.muted,
-  },
-};
+  };
 
 export const Chatbot = () => {
   const { isAuthenticated } = useAuth();
@@ -201,12 +151,6 @@ export const Chatbot = () => {
   const [crudMessages, setCrudMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
-    open: false,
-    action: null,
-    storyId: null,
-    storyTitle: "",
-  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -267,23 +211,13 @@ export const Chatbot = () => {
 
       setCurrentMessages((prev) => [...prev, assistantMessage]);
 
+      // Invalidate cache after CRUD operations
       if (mode === "crud" && response.functionCalls) {
-        for (const fc of response.functionCalls) {
-          if (
-            fc.function === "delete_story" ||
-            fc.function === "update_story"
-          ) {
-            const storyId = fc.args.storyId as string;
-            const storyTitle = (fc.args.title as string) || "this story";
-            setConfirmDialog({
-              open: true,
-              action: fc.function === "delete_story" ? "delete" : "update",
-              storyId,
-              storyTitle,
-              data: fc.args,
-            });
-            break;
-          }
+        const hasMutations = response.functionCalls.some(
+          fc => fc.function === "delete_story" || fc.function === "update_story" || fc.function === "create_story"
+        );
+        if (hasMutations) {
+          invalidateStoriesCache();
         }
       }
     } catch (error: unknown) {
@@ -302,53 +236,7 @@ export const Chatbot = () => {
     }
   };
 
-  const handleConfirm = async (confirmed: boolean) => {
-    if (!confirmed || !confirmDialog.storyId) {
-      setConfirmDialog({
-        open: false,
-        action: null,
-        storyId: null,
-        storyTitle: "",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await confirmAction(
-        confirmDialog.action!,
-        confirmDialog.storyId,
-        true,
-        confirmDialog.data,
-      );
-
-      const resultMessage: ChatMessage = {
-        id: `result-${Date.now()}`,
-        role: "assistant",
-        content: result.success
-          ? result.message
-          : `Operation failed: ${result.message}`,
-        timestamp: Date.now(),
-      };
-      setCurrentMessages((prev) => [...prev, resultMessage]);
-    } catch (error: unknown) {
-      const errorMessage: ChatMessage = {
-        id: `error-${Date.now()}`,
-        role: "assistant",
-        content: "Sorry, I encountered an error while processing your request.",
-        timestamp: Date.now(),
-      };
-      setCurrentMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
-      setConfirmDialog({
-        open: false,
-        action: null,
-        storyId: null,
-        storyTitle: "",
-      });
-    }
-  };
+  // No separate confirm handler - all confirmation is done in chat
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -444,40 +332,7 @@ export const Chatbot = () => {
             </button>
           </div>
 
-          {confirmDialog.open && (
-            <div style={styles.confirmDialog}>
-              <div style={styles.confirmContent}>
-                <AlertCircle size={48} color={theme.colors.danger.primary} />
-                <h3
-                  style={{
-                    marginTop: "16px",
-                    color: theme.colors.text.primary,
-                  }}
-                >
-                  Confirm{" "}
-                  {confirmDialog.action === "delete" ? "Delete" : "Update"}
-                </h3>
-                <p style={{ marginTop: "8px", color: theme.colors.text.muted }}>
-                  Are you sure you want to {confirmDialog.action} "
-                  {confirmDialog.storyTitle}"?
-                </p>
-                <div style={styles.confirmButtons}>
-                  <button
-                    style={styles.confirmButton(false)}
-                    onClick={() => handleConfirm(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    style={styles.confirmButton(true)}
-                    onClick={() => handleConfirm(true)}
-                  >
-                    {confirmDialog.action === "delete" ? "Delete" : "Update"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          
         </div>
       )}
 

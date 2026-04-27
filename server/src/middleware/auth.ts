@@ -66,27 +66,34 @@ export const optionalAuth = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
+    const userIdHeader = req.headers["x-user-id"] as string;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      next();
-      return;
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, env.JWT_SECRET) as {
-      userId: string;
-      username: string;
-      email: string;
-    };
-
-    const user = await User.findById(decoded.userId).select("_id username email");
-
-    if (user) {
-      req.user = {
-        _id: user._id.toString(),
-        username: user.username,
-        email: user.email,
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      const decoded = jwt.verify(token, env.JWT_SECRET) as {
+        userId: string;
+        username: string;
+        email: string;
       };
+
+      const user = await User.findById(decoded.userId).select("_id username email");
+
+      if (user) {
+        req.user = {
+          _id: user._id.toString(),
+          username: user.username,
+          email: user.email,
+        };
+      }
+    } else if (userIdHeader) {
+      const user = await User.findById(userIdHeader).select("_id username email");
+      if (user) {
+        req.user = {
+          _id: user._id.toString(),
+          username: user.username,
+          email: user.email,
+        };
+      }
     }
 
     next();
