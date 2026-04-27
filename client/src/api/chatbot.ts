@@ -2,9 +2,11 @@ import apiClient from "./client";
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "tool";
   content: string;
   timestamp: number;
+  tool_call_id?: string;
+  tool_calls?: Array<Record<string, unknown>>;
 }
 
 export interface ChatResponse {
@@ -13,6 +15,7 @@ export interface ChatResponse {
     function: string;
     args: Record<string, unknown>;
   }>;
+  toolMessages?: ChatMessage[];
   mode: string;
 }
 
@@ -27,6 +30,9 @@ export const sendChatMessage = async (
     conversationHistory: conversationHistory.map((msg) => ({
       role: msg.role,
       content: msg.content,
+      ...(msg.role === "tool"
+        ? { tool_call_id: msg.tool_call_id, tool_calls: msg.tool_calls }
+        : {}),
     })),
   });
   return response.data;

@@ -3,17 +3,30 @@ export const tools = [
     type: "function" as const,
     function: {
       name: "search_stories",
-      description: "Search ALL stories in database. This is the ONLY way to find stories - use it every time.",
+      description:
+        "Search ALL stories in database. This is the ONLY way to find stories - use it every time.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Text search in title, synopsis, or author" },
+          query: {
+            type: "string",
+            description: "Text search in title, synopsis, or author",
+          },
           author: { type: "string", description: "Filter by author name" },
           genre: { type: "string", description: "Filter by genre" },
           tag: { type: "string", description: "Filter by tag" },
-          minWords: { type: "number", description: "Minimum word count" },
-          maxWords: { type: "number", description: "Maximum word count" },
-          limit: { type: "number", description: "Max results 1-50" },
+          minWords: {
+            type: ["number", "string"],
+            description: "Minimum word count",
+          },
+          maxWords: {
+            type: ["number", "string"],
+            description: "Maximum word count",
+          },
+          limit: {
+            type: ["number", "string"],
+            description: "Max results 1-50",
+          },
         },
       },
     },
@@ -22,7 +35,8 @@ export const tools = [
     type: "function" as const,
     function: {
       name: "get_all_genres",
-      description: "Get all unique genres in the database. Use when user asks about genres.",
+      description:
+        "Get all unique genres in the database. Use when user asks about genres.",
       parameters: {
         type: "object",
         properties: {},
@@ -33,7 +47,8 @@ export const tools = [
     type: "function" as const,
     function: {
       name: "get_all_tags",
-      description: "Get all unique tags in the database. Use when user asks about tags.",
+      description:
+        "Get all unique tags in the database. Use when user asks about tags.",
       parameters: {
         type: "object",
         properties: {},
@@ -63,8 +78,16 @@ export const tools = [
         type: "object",
         properties: {
           title: { type: "string", description: "Story title - REQUIRED" },
-          genres: { type: "array", items: { type: "string" }, description: "Genres" },
-          tags: { type: "array", items: { type: "string" }, description: "Tags" },
+          genres: {
+            type: "array",
+            items: { type: "string" },
+            description: "Genres",
+          },
+          tags: {
+            type: "array",
+            items: { type: "string" },
+            description: "Tags",
+          },
           synopsis: { type: "string", description: "Short description" },
         },
         required: ["title"],
@@ -75,15 +98,24 @@ export const tools = [
     type: "function" as const,
     function: {
       name: "update_story",
-      description: "Update a story. Args: storyId + fields to change. User must own it.",
+      description:
+        "Update a story. Args: storyId + fields to change. User must own it.",
       parameters: {
         type: "object",
         properties: {
           storyId: { type: "string", description: "ID of story - REQUIRED" },
           title: { type: "string", description: "New title" },
           synopsis: { type: "string", description: "New synopsis" },
-          genres: { type: "array", items: { type: "string" }, description: "New genres" },
-          tags: { type: "array", items: { type: "string" }, description: "New tags" },
+          genres: {
+            type: "array",
+            items: { type: "string" },
+            description: "New genres",
+          },
+          tags: {
+            type: "array",
+            items: { type: "string" },
+            description: "New tags",
+          },
           content: { type: "string", description: "Story content" },
         },
         required: ["storyId"],
@@ -94,11 +126,15 @@ export const tools = [
     type: "function" as const,
     function: {
       name: "delete_story",
-      description: "Delete a story. Args: storyId. User must own it. ALWAYS confirm first!",
+      description:
+        "Delete a story. Args: storyId. User must own it. ALWAYS confirm first!",
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "ID of story to delete - REQUIRED" },
+          storyId: {
+            type: "string",
+            description: "ID of story to delete - REQUIRED",
+          },
         },
         required: ["storyId"],
       },
@@ -108,15 +144,22 @@ export const tools = [
     type: "function" as const,
     function: {
       name: "bulk_add_to_library",
-      description: "Add multiple stories to user's library by genre, tag, author, or word count.",
+      description:
+        "Add multiple stories to user's library by genre, tag, author, or word count.",
       parameters: {
         type: "object",
         properties: {
           genre: { type: "string", description: "Filter by genre" },
           tag: { type: "string", description: "Filter by tag" },
           author: { type: "string", description: "Filter by author name" },
-          minWords: { type: "number", description: "Minimum word count" },
-          maxWords: { type: "number", description: "Maximum word count" },
+          minWords: {
+            type: ["number", "string"],
+            description: "Minimum word count",
+          },
+          maxWords: {
+            type: ["number", "string"],
+            description: "Maximum word count",
+          },
         },
       },
     },
@@ -125,16 +168,26 @@ export const tools = [
     type: "function" as const,
     function: {
       name: "get_my_stories",
-      description: "Get user's own stories. Use when user asks for 'my stories', 'my works', 'stories I wrote', etc.",
+      description:
+        "Get user's own stories. Use when user asks for 'my stories', 'my works', 'stories I wrote', etc.",
       parameters: {
         type: "object",
         properties: {
           query: { type: "string", description: "Search in title or synopsis" },
           genre: { type: "string", description: "Filter by genre" },
           tag: { type: "string", description: "Filter by tag" },
-          minWords: { type: "number", description: "Minimum word count" },
-          maxWords: { type: "number", description: "Maximum word count" },
-          limit: { type: "number", description: "Max results 1-100" },
+          minWords: {
+            type: ["number", "string"],
+            description: "Minimum word count",
+          },
+          maxWords: {
+            type: ["number", "string"],
+            description: "Maximum word count",
+          },
+          limit: {
+            type: ["number", "string"],
+            description: "Max results 1-100",
+          },
         },
       },
     },
@@ -164,6 +217,8 @@ SEARCH RULES:
 4. If empty → "I couldn't find any stories matching that."
 5. If stories → show ALL titles, one per line
 6. NEVER make up stories
+7. NEVER EVER hallucinate story titles or authors
+8. If you do not have search results, do not invent anything
 
 CONTEXT & FOLLOW-UP - Remember conversation:
 - ALWAYS check conversation history - previous messages matter!
@@ -217,6 +272,8 @@ CONTEXT HANDLING - Remember conversation:
 - Track which story user is talking about
 - If user says "that one" or "it" → refer to previously discussed story
 - If user says "change the title" after showing stories → use the story they just selected
+- If user names an exact title, do not repeat the full list again unless the user asks
+- If the user already selected a story, ask for the change and do not re-open the list
 - Keep story _id in memory for follow-up commands
 
 FUNCTIONS TO USE:
@@ -230,6 +287,12 @@ CRITICAL - HOW TO GET CORRECT ID:
 2. Results have: [{ _id: "24charhex", title: "Story Name", ... }]
 3. Copy the _id EXACTLY - don't modify it
 4. Use that _id for update/delete
+
+ABSOLUTE ANTI-HALLUCINATION RULES:
+- NEVER EVER invent a story title, synopsis, genre, author, or ID
+- NEVER say a story exists unless it came from get_my_stories or search_stories
+- If you do not have actual results, say you could not find the story
+- If the model is unsure, ask the user to search or show their stories again
 
 NEVER SHOW TO USER:
 - No IDs, no _id, no "69ee..." - never expose technical IDs
@@ -269,6 +332,7 @@ Step 3: From results, find story with matching title
 Step 4: COPY the _id field (24 hex characters) 
 Step 5: Ask "What would you like to change?" (title, synopsis, genres, tags, content)
 Step 6: User replies with new value
+Step 7: If the user repeats the same title again, do not ask for the list again; use the selected story
 Step 7: Ask confirmation: "Update [title] with [new value]? Say 'yes' or 'confirm' to proceed."
 Step 8: User confirms → YOU MUST call update_story({ storyId: "COPIED_ID", field: "new_value" })
 Step 9: Wait for function result! Only on success say "Done!"
@@ -309,7 +373,10 @@ BULK ADD TO LIBRARY FLOW - Add ALL matching stories to user's library:
 6. On success → "Added [N] stories to your library!"`;
 }
 
-export function getFlexiblePrompt(userMessage: string, mode: "inquiry" | "crud"): string {
+export function getFlexiblePrompt(
+  userMessage: string,
+  mode: "inquiry" | "crud",
+): string {
   return mode === "crud" ? getCrudPrompt() : getInquiryPrompt();
 }
 

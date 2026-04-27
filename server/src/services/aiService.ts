@@ -22,6 +22,7 @@ export interface ChatOptions {
 export interface ChatResponse {
   response: string;
   functionCalls: Array<{ function: string; args: Record<string, unknown> }>;
+  toolMessages?: ChatMessage[];
   mode: string;
 }
 
@@ -83,7 +84,7 @@ export async function sendChatMessage(
       model: MODEL,
       messages: currentMessages,
       tools: availableTools,
-      temperature: 0.5,
+      temperature: 0,
       max_tokens: 2048,
     });
 
@@ -134,11 +135,21 @@ export async function sendChatMessage(
     const lastResponse = await groq.chat.completions.create({
       model: MODEL,
       messages: currentMessages,
-      temperature: 0.5,
+      temperature: 0,
       max_tokens: 1024,
     });
     finalResponse = lastResponse.choices[0]?.message?.content || "";
   }
+
+  const toolMessages = currentMessages
+    .filter((msg) => msg.role === "tool")
+    .map((msg, index) => ({
+      id: (msg as any).tool_call_id || `tool-${Date.now()}-${index}`,
+      role: "tool" as const,
+      content: String(msg.content),
+      tool_call_id: (msg as any).tool_call_id,
+      tool_calls: (msg as any).tool_calls,
+    }));
 
   return {
     response: finalResponse,
@@ -146,6 +157,7 @@ export async function sendChatMessage(
       function: tc.name,
       args: tc.args,
     })),
+    toolMessages,
     mode,
   };
 }

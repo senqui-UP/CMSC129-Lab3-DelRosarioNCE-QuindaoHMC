@@ -209,7 +209,11 @@ export const Chatbot = () => {
         timestamp: Date.now(),
       };
 
-      setCurrentMessages((prev) => [...prev, assistantMessage]);
+      setCurrentMessages((prev) => [
+        ...prev,
+        ...(response.toolMessages || []),
+        assistantMessage,
+      ]);
 
       // Invalidate cache after CRUD operations
       if (mode === "crud" && response.functionCalls) {
@@ -294,11 +298,13 @@ export const Chatbot = () => {
           </div>
 
           <div style={styles.messagesContainer}>
-            {currentMessages.map((msg) => (
-              <div key={msg.id} style={styles.message(msg.role === "user")}>
-                {msg.content}
-              </div>
-            ))}
+            {currentMessages
+              .filter((msg) => msg.role !== "tool")
+              .map((msg) => (
+                <div key={msg.id} style={styles.message(msg.role === "user")}>
+                  {msg.content}
+                </div>
+              ))}
             {loading && (
               <div style={styles.loadingIndicator}>
                 <Loader2 size={16} className="animate-spin" />

@@ -16,6 +16,8 @@ interface UseStoriesOptions {
 
 // Simple in-memory cache
 const storiesCache = new Map<string, { data: OneShot[]; timestamp: number }>();
+const cacheEvents = new EventTarget();
+const CACHE_INVALIDATED_EVENT = "storiesCacheInvalidated";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 const getCacheKey = (options?: UseStoriesOptions): string => {
@@ -100,9 +102,24 @@ export const useStories = (options?: UseStoriesOptions) => {
       }
     };
 
+    const handleCacheInvalidated = () => {
+      fetchStories();
+    };
+
+    cacheEvents.addEventListener(
+      CACHE_INVALIDATED_EVENT,
+      handleCacheInvalidated,
+    );
+
     fetchStories();
 
-    return () => abortControllerRef.current?.abort();
+    return () => {
+      abortControllerRef.current?.abort();
+      cacheEvents.removeEventListener(
+        CACHE_INVALIDATED_EVENT,
+        handleCacheInvalidated,
+      );
+    };
   }, [options?.author, options?.limit, options?.skip]);
 
   return state;
@@ -111,4 +128,5 @@ export const useStories = (options?: UseStoriesOptions) => {
 // Helper to invalidate cache
 export const invalidateStoriesCache = () => {
   storiesCache.clear();
+  cacheEvents.dispatchEvent(new Event(CACHE_INVALIDATED_EVENT));
 };
