@@ -65,7 +65,12 @@ export async function sendChatMessage(
 
   const availableTools = mode === "crud" ? tools : tools.slice(0, 2);
   
-  console.log("[AI Service] Mode:", mode, "Tools available:", availableTools.map(t => t.function.name).join(", "));
+  console.log("[AI Service] ===== NEW REQUEST =====");
+  console.log("[AI Service] Mode:", mode);
+  console.log("[AI Service] Message:", message);
+  console.log("[AI Service] Tools:", availableTools.map(t => t.function.name).join(", "));
+  console.log("[AI Service] History:", conversationHistory?.length || 0, "messages");
+  console.log("[AI Service] User ID:", userId ? "provided" : "MISSING");
 
   let toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
   let maxIterations = 5;
