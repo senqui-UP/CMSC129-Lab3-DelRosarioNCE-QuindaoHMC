@@ -90,11 +90,11 @@ This application includes an AI-powered chatbot powered by **Google Gemini API**
 
 ### Setup
 
-1. Get a Google Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+1. Get a Groq API key from [Google AI Studio](https://console.groq.com/keys)
 2. Copy `.env.example` to `.env` in the server directory
 3. Add your API key to the `.env` file:
    ```
-   GEMINI_API_KEY=your_gemini_api_key_here
+   GROQ_API_KEY=your_gemini_api_key_here
    ```
 
 ### Features
@@ -123,12 +123,19 @@ In addition to all inquiry features:
 - "What horror stories are available?"
 - "Find stories with magic tag"
 - "Show me recently updated stories"
+- "Give me a random story"
+  - "Give me the synopsis"
+  - "Give me the name of the author"  
+- "Show me a list of genres"
+- "Show me a list of tags"
 
 **CRUD Mode:**
 - "Create a story called 'My Adventure' with fantasy and adventure genres"
 - "Update my story 'Old Draft' to add horror genre"
 - "Delete my story 'First Attempt'"
-- "Show me my stories and update the one called 'Test'"
+- "Show me my stories"
+- "Edit a story titled [title]"
+- "Move all [genre] stories into my library"
 
 ### Security
 
