@@ -10,10 +10,17 @@ interface FunctionResult {
   count?: number;
 }
 
-async function makeRequest(method: string, endpoint: string, data?: unknown, userId?: string): Promise<FunctionResult> {
+async function makeRequest(
+  method: string,
+  endpoint: string,
+  data?: unknown,
+  userId?: string,
+): Promise<FunctionResult> {
   console.log(`[functionService] ${method} ${endpoint}`, { data, userId });
   try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     if (userId) {
       headers["x-user-id"] = userId;
     }
@@ -36,7 +43,7 @@ async function makeRequest(method: string, endpoint: string, data?: unknown, use
 export async function executeFunction(
   functionName: string,
   args: Record<string, unknown>,
-  userId?: string
+  userId?: string,
 ): Promise<FunctionResult> {
   switch (functionName) {
     case "search_stories":
@@ -45,64 +52,118 @@ export async function executeFunction(
         author: args.author,
         genre: args.genre,
         tag: args.tag,
-        minWords: args.minWords,
-        maxWords: args.maxWords,
-        limit: args.limit || 10,
+        minWords:
+          typeof args.minWords === "string"
+            ? Number(args.minWords)
+            : args.minWords,
+        maxWords:
+          typeof args.maxWords === "string"
+            ? Number(args.maxWords)
+            : args.maxWords,
+        limit:
+          typeof args.limit === "string"
+            ? Number(args.limit)
+            : args.limit || 10,
       });
-      
+
     case "get_all_genres":
       return await makeRequest("GET", "/ai-data/genres");
-      
+
     case "get_all_tags":
       return await makeRequest("GET", "/ai-data/tags");
-      
+
     case "get_my_stories":
-      return await makeRequest("POST", "/ai-data/my-stories-search", {
-        query: args.query,
-        genre: args.genre,
-        tag: args.tag,
-        minWords: args.minWords,
-        maxWords: args.maxWords,
-        limit: args.limit || 50,
-      }, userId);
-      
+      return await makeRequest(
+        "POST",
+        "/ai-data/my-stories-search",
+        {
+          query: args.query,
+          genre: args.genre,
+          tag: args.tag,
+          minWords:
+            typeof args.minWords === "string"
+              ? Number(args.minWords)
+              : args.minWords,
+          maxWords:
+            typeof args.maxWords === "string"
+              ? Number(args.maxWords)
+              : args.maxWords,
+          limit:
+            typeof args.limit === "string"
+              ? Number(args.limit)
+              : args.limit || 50,
+        },
+        userId,
+      );
+
     case "get_story_details":
       if (!userId) return { success: false, error: "Authentication required" };
-      return await makeRequest("GET", `/ai-data/story/${args.storyId}`, undefined, userId);
-      
+      return await makeRequest(
+        "GET",
+        `/ai-data/story/${args.storyId}`,
+        undefined,
+        userId,
+      );
+
     case "create_story":
       if (!userId) return { success: false, error: "Authentication required" };
-      return await makeRequest("POST", "/ai-data/story", {
-        title: args.title,
-        genres: args.genres,
-        tags: args.tags,
-        synopsis: args.synopsis,
-      }, userId);
-      
+      return await makeRequest(
+        "POST",
+        "/ai-data/story",
+        {
+          title: args.title,
+          genres: args.genres,
+          tags: args.tags,
+          synopsis: args.synopsis,
+        },
+        userId,
+      );
+
     case "update_story":
       if (!userId) return { success: false, error: "Authentication required" };
-      return await makeRequest("PUT", `/ai-data/story/${args.storyId}`, {
-        title: args.title,
-        synopsis: args.synopsis,
-        genres: args.genres,
-        tags: args.tags,
-        content: args.content,
-      }, userId);
-      
+      return await makeRequest(
+        "PUT",
+        `/ai-data/story/${args.storyId}`,
+        {
+          title: args.title,
+          synopsis: args.synopsis,
+          genres: args.genres,
+          tags: args.tags,
+          content: args.content,
+        },
+        userId,
+      );
+
     case "delete_story":
       if (!userId) return { success: false, error: "Authentication required" };
-      return await makeRequest("DELETE", `/ai-data/story/${args.storyId}`, undefined, userId);
-      
+      return await makeRequest(
+        "DELETE",
+        `/ai-data/story/${args.storyId}`,
+        undefined,
+        userId,
+      );
+
     case "bulk_add_to_library":
       if (!userId) return { success: false, error: "Authentication required" };
-      return await makeRequest("POST", "/libraries/bulk-add", {
-        genre: args.genre,
-        tag: args.tag,
-        author: args.author,
-        minWords: args.minWords,
-        maxWords: args.maxWords,
-      }, userId);
-      
+      return await makeRequest(
+        "POST",
+        "/libraries/bulk-add",
+        {
+          genre: args.genre,
+          tag: args.tag,
+          author: args.author,
+          minWords:
+            typeof args.minWords === "string"
+              ? Number(args.minWords)
+              : args.minWords,
+          maxWords:
+            typeof args.maxWords === "string"
+              ? Number(args.maxWords)
+              : args.maxWords,
+        },
+        userId,
+      );
+
     default:
       return { success: false, error: `Unknown function: ${functionName}` };
   }

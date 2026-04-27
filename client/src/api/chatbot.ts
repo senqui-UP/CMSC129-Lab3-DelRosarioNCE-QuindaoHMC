@@ -6,7 +6,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   tool_call_id?: string;
-  tool_calls?: any[];
+  tool_calls?: Array<Record<string, unknown>>;
 }
 
 export interface ChatResponse {
@@ -30,8 +30,9 @@ export const sendChatMessage = async (
     conversationHistory: conversationHistory.map((msg) => ({
       role: msg.role,
       content: msg.content,
-      ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {}),
-      ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
+      ...(msg.role === "tool"
+        ? { tool_call_id: msg.tool_call_id, tool_calls: msg.tool_calls }
+        : {}),
     })),
   });
   return response.data;

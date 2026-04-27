@@ -132,7 +132,12 @@ export async function sendChatMessage(
 
   const availableTools = mode === "crud" ? tools : tools.slice(0, 2);
   
-  console.log("[AI Service] Mode:", mode, "Tools available:", availableTools.map(t => t.function.name).join(", "));
+  console.log("[AI Service] ===== NEW REQUEST =====");
+  console.log("[AI Service] Mode:", mode);
+  console.log("[AI Service] Message:", message);
+  console.log("[AI Service] Tools:", availableTools.map(t => t.function.name).join(", "));
+  console.log("[AI Service] History:", conversationHistory?.length || 0, "messages");
+  console.log("[AI Service] User ID:", userId ? "provided" : "MISSING");
 
   let toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
   const toolMessages: ChatMessage[] = [];
@@ -146,7 +151,7 @@ export async function sendChatMessage(
       model: MODEL,
       messages: currentMessages,
       tools: availableTools,
-      temperature: 0.5,
+      temperature: 0,
       max_tokens: 2048,
     });
 
@@ -214,11 +219,21 @@ export async function sendChatMessage(
     const lastResponse = await groq.chat.completions.create({
       model: MODEL,
       messages: currentMessages,
-      temperature: 0.5,
+      temperature: 0,
       max_tokens: 1024,
     });
     finalResponse = lastResponse.choices[0]?.message?.content || "";
   }
+
+  const toolMessages = currentMessages
+    .filter((msg) => msg.role === "tool")
+    .map((msg, index) => ({
+      id: (msg as any).tool_call_id || `tool-${Date.now()}-${index}`,
+      role: "tool" as const,
+      content: String(msg.content),
+      tool_call_id: (msg as any).tool_call_id,
+      tool_calls: (msg as any).tool_calls,
+    }));
 
   return {
     response: finalResponse,
