@@ -227,16 +227,16 @@ router.put("/story/:id", async (req: AuthRequest, res: Response, next: NextFunct
     const { title, synopsis, genres, tags, content } = req.body;
     const updateData: Record<string, unknown> = { lastUpdated: today() };
     
-    if (title) updateData.title = title;
-    if (synopsis) updateData.synopsis = synopsis;
-    if (genres) updateData.genres = genres;
-    if (tags) updateData.tags = tags;
-    if (content) {
+    if (title !== undefined) updateData.title = title;
+    if (synopsis !== undefined) updateData.synopsis = synopsis;
+    if (genres !== undefined) updateData.genres = genres;
+    if (tags !== undefined) updateData.tags = tags;
+    if (content !== undefined) {
       updateData.content = content;
       updateData.words = String(content).trim().split(/\s+/).filter(Boolean).length;
     }
     
-    const updated = await Story.findByIdAndUpdate(req.params.id, updateData, { returnDocument: "after" }).lean();
+    const updated = await Story.findByIdAndUpdate(storyId, updateData, { returnDocument: "after" }).lean();
     res.json({ success: true, data: { id: updated?._id, title: updated?.title }, message: `Updated "${updated?.title}"` });
   } catch (err) {
     console.error("[PUT] Error:", err);

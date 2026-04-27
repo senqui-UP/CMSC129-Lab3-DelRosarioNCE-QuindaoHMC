@@ -22,6 +22,7 @@ export interface ChatOptions {
 export interface ChatResponse {
   response: string;
   functionCalls: Array<{ function: string; args: Record<string, unknown> }>;
+  toolMessages?: ChatMessage[];
   mode: string;
 }
 
@@ -44,19 +45,85 @@ export async function sendChatMessage(
   ];
 
   if (conversationHistory && Array.isArray(conversationHistory)) {
-    for (const msg of conversationHistory.slice(-10)) {
-      if (msg.role === "tool" && msg.tool_call_id) {
-        messages.push({
-          role: "tool",
-          content: msg.content,
-          tool_call_id: msg.tool_call_id,
-        } as OpenAI.Chat.ChatCompletionToolMessageParam);
+    // Groq requires strict ordering: one assistant message containing ALL tool_calls
+    // for a turn must be immediately followed by ALL matching tool result messages.
+    //
+    // The stored history interleaves them as individual objects (one per call), so
+    // we must re-group them: collect consecutive assistant+tool pairs that share
+    // tool_call_ids, then emit a single merged assistant message followed by all
+    // tool results. Any orphaned tool messages (no preceding assistant) are skipped.
+    const history = conversationHistory.slice(-20);
+
+    // First pass: merge consecutive per-call assistant/tool pairs into grouped turns.
+    // A "tool turn" is: N×(assistant{tool_calls:[c]}) followed by N×(tool{tool_call_id})
+    // where the tool_call_ids match. We detect this by collecting assistant messages
+    // that have tool_calls and grouping their immediately-following tool results.
+    type MergedEntry =
+      | { kind: "plain"; role: "user" | "assistant"; content: string }
+      | { kind: "tool_turn"; tool_calls: any[]; results: { content: string; tool_call_id: string }[] };
+
+    const merged: MergedEntry[] = [];
+
+    let i = 0;
+    while (i < history.length) {
+      const msg = history[i];
+
+      if (msg.role === "assistant" && msg.tool_calls?.length) {
+        // Start collecting a tool turn — gather all consecutive assistant+tool pairs
+        const tool_calls: any[] = [];
+        const results: { content: string; tool_call_id: string }[] = [];
+        const seenIds = new Set<string>();
+
+        // Collect all contiguous assistant messages with tool_calls (one per call)
+        while (i < history.length && history[i].role === "assistant" && history[i].tool_calls?.length) {
+          const calls = history[i].tool_calls!;
+          for (const c of calls) {
+            tool_calls.push(c);
+            seenIds.add(c.id);
+          }
+          i++;
+        }
+
+        // Collect all immediately-following tool result messages whose IDs we know
+        while (i < history.length && history[i].role === "tool" && seenIds.has(history[i].tool_call_id!)) {
+          results.push({ content: history[i].content ?? "", tool_call_id: history[i].tool_call_id! });
+          i++;
+        }
+
+        // Only include if every tool call has a matching result (Groq requires pairs)
+        if (tool_calls.length > 0 && tool_calls.length === results.length) {
+          merged.push({ kind: "tool_turn", tool_calls, results });
+        }
+        // If unpaired, drop the whole turn — better than sending malformed history
+      } else if (msg.role === "tool") {
+        // Orphaned tool message with no preceding assistant — skip
+        i++;
+      } else if (msg.role === "user" || msg.role === "assistant") {
+        merged.push({ kind: "plain", role: msg.role, content: msg.content ?? "" });
+        i++;
       } else {
+        i++;
+      }
+    }
+
+    // Second pass: push merged entries into messages
+    for (const entry of merged) {
+      if (entry.kind === "plain") {
+        messages.push({ role: entry.role, content: entry.content });
+      } else {
+        // One assistant message with ALL tool_calls, then all tool results
         messages.push({
-          role: msg.role as "user" | "assistant",
-          content: msg.content,
-          ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
-        });
+          role: "assistant",
+          content: "",
+          tool_calls: entry.tool_calls,
+        } as OpenAI.Chat.ChatCompletionMessageParam);
+        for (const r of entry.results) {
+          messages.push({
+            role: "tool",
+            content: r.content,
+            tool_call_id: r.tool_call_id,
+          } as OpenAI.Chat.ChatCompletionToolMessageParam);
+        }
       }
     }
   }
@@ -68,6 +135,7 @@ export async function sendChatMessage(
   console.log("[AI Service] Mode:", mode, "Tools available:", availableTools.map(t => t.function.name).join(", "));
 
   let toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
+  const toolMessages: ChatMessage[] = [];
   let maxIterations = 5;
   let iterations = 0;
   let finalResponse = "";
@@ -97,10 +165,19 @@ export async function sendChatMessage(
 
         toolCalls.push({ name: fnName, args: fnArgs });
 
-        currentMessages.push({
+        const assistantToolMessage: ChatMessage = {
           role: "assistant",
           tool_calls: [call],
+          tool_call_id: call.id,
+          content: "",
+        };
+
+        currentMessages.push({
+          role: "assistant",
+          content: "",
+          tool_calls: [call],
         } as OpenAI.Chat.ChatCompletionMessageParam);
+        toolMessages.push(assistantToolMessage);
 
         console.log("[AI Service] Calling function:", fnName, "with args:", fnArgs);
         
@@ -111,11 +188,19 @@ export async function sendChatMessage(
           userId || undefined,
         );
         console.log("[AI Service] Function result:", funcResult);
+
+        const toolResultMessage: ChatMessage = {
+          role: "tool",
+          content: JSON.stringify(funcResult),
+          tool_call_id: call.id,
+        };
+
         currentMessages.push({
           role: "tool",
           content: JSON.stringify(funcResult),
           tool_call_id: call.id,
         } as OpenAI.Chat.ChatCompletionToolMessageParam);
+        toolMessages.push(toolResultMessage);
       }
     } else {
       finalResponse = assistantMessage?.content || "";
@@ -141,6 +226,7 @@ export async function sendChatMessage(
       function: tc.name,
       args: tc.args,
     })),
+    toolMessages,
     mode,
   };
 }
